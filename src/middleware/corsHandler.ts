@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import app from '../server.js';
 
 export function corsHandler(req: Request, res: Response, next: NextFunction) {
     res.header('Access-Control-Allow-Origin', req.header('origin') || '*');
@@ -11,3 +12,5 @@ export function corsHandler(req: Request, res: Response, next: NextFunction) {
     }
     next();
 }
+
+export default corsHandler;

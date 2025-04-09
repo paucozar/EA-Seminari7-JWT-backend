@@ -8,7 +8,7 @@ import {
     updateUserHandler,
     deleteUserHandler
 } from '../users/user_controller.js';
-import { checkJwt } from '../../middleware/session.js';
+import { checkJwt, authenticate } from '../../middleware/session.js';
 const router = express.Router();
 
 /**
@@ -68,8 +68,9 @@ router.post('/users', createUserHandler);
  *   get:
  *     summary: Obtiene todos los usuarios
  *     description: Retorna una lista de todos los usuarios.
- *     tags:
- *       - Users
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Éxito
@@ -87,7 +88,7 @@ router.post('/users', createUserHandler);
  *                  email:
  *                     type: string
  */
-router.get('/users', checkJwt, getAllUsersHandler);
+router.get('/users', authenticate, getAllUsersHandler);
 
 /**
  * @openapi

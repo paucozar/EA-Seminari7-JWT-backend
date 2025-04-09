@@ -1,9 +1,10 @@
 import { encrypt, verified } from "../../utils/bcrypt.handle.js";
-import { generateToken } from "../../utils/jwt.handle.js";
+import { generateTokens, verifyRefreshToken } from "../../utils/jwt.handle.js";
 import User, { IUser } from "../users/user_models.js";
 import { Auth } from "./auth_model.js";
 import jwt from 'jsonwebtoken';
 import axios from 'axios';
+import { verify } from "crypto";
 
 const registerNewUser = async ({ email, password, name, age }: IUser) => {
     const checkIs = await User.findOne({ email });
@@ -25,13 +26,28 @@ const loginUser = async ({ email, password }: Auth) => {
     const isCorrect = await verified(password, passwordHash);
     if(!isCorrect) return "INCORRECT_PASSWORD";
 
-    const token = generateToken(checkIs.email);
+    const {accessToken, refreshToken} = generateTokens(checkIs.id, checkIs.role);
     const data = {
-        token,
+        accessToken,
+        refreshToken,
         user: checkIs
     }
     return data;
 };
+
+export const refreshAccessToken = async (refreshToken: string) => {
+    try{
+        const decoded: any = verifyRefreshToken(refreshToken);
+        const user = await User.findById(decoded.id);
+        if (!user) return "NOT_FOUND_USER";
+
+        const accessToken = jwt.sign({ id: user.id, role: user.role }, 'access_token_secret', { expiresIn: '1m' });
+        return { accessToken};
+    } catch (error) {
+        console.error("Error al verificar el token de refresco:", error);
+        return "INVALID_REFRESH_TOKEN";
+    }
+}
 
 const googleAuth = async (code: string) => {
 
@@ -84,11 +100,12 @@ const googleAuth = async (code: string) => {
                 email: profile.email,
                 googleId: profile.id,
                 password: passHash,
+                role: 'user'
             });
         }
 
         // Genera el token JWT
-        const token = generateToken(user.email);
+        const token = generateTokens(user.id, user.role);
 
         console.log(token);
         return { token, user };

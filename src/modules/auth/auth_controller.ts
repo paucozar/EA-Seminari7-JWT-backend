@@ -1,5 +1,7 @@
 import { Request, Response } from "express";
 import { registerNewUser, loginUser, googleAuth } from "../auth/auth_service.js";
+import {generateTokens, verifyAccessToken, verifyRefreshToken} from "../../utils/jwt.handle.js";
+import {refreshAccessToken} from "../auth/auth_service.js";
 
 const registerCtrl = async ({body}: Request, res: Response) => {
     try{
@@ -10,12 +12,30 @@ const registerCtrl = async ({body}: Request, res: Response) => {
     }
 };
 
+export const refreshTokenHandler = async (req: Request, res: Response) => {
+    const {refreshToken} = req.body;
 
+    if(!refreshToken){
+        return res.status(400).json({message: "No se ha proporcionado un token de refresco"});
+    }
+
+    const newAccessToken = await refreshAccessToken(refreshToken);
+
+    if(newAccessToken === "NOT_FOUND_USER"){
+        return res.status(404).json({message: "Usuario no encontrado"});
+    }
+
+    if(newAccessToken === "INVALID_REFRESH_TOKEN"){
+        return res.status(403).json({message: "Token de refresco inválido"});
+    }
+
+    res.json(newAccessToken);
+};
 
 const loginCtrl = async ({ body }: Request, res: Response) => {
     try {
-        const { name, email, password } = body;
-        const responseUser = await loginUser({name, email, password });
+        const { name, email, password, role } = body;
+        const responseUser = await loginUser({name, email, password, role });
 
         if (responseUser === 'INCORRECT_PASSWORD') {
             return res.status(403).json({ message: 'Contraseña incorrecta' });
